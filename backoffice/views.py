@@ -8,6 +8,7 @@ import re
 
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import Count
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.db.utils import IntegrityError
@@ -31,12 +32,19 @@ ABOUT_SECTION_FIELDS = ['title', 'university', 'effort', 'video']
 log = logging.getLogger(__name__)
 
 FunCourse = namedtuple('FunCourse',
-        'course, fun, course_image_url, students_count, url, studio_url, ' + ', '.join(ABOUT_SECTION_FIELDS))
+        'course, fun, course_image_url, course_enrollments, url, studio_url, ' + ', '.join(ABOUT_SECTION_FIELDS))
 
 
+def get_course_enrollments_count():
+    """Retrieve CourseEnrollment count for each Course by a sigle request."""
+    counts = {c['course_id']: c['id__count']
+            for c in CourseEnrollment.objects.values('course_id').distinct().annotate(Count('id'))}
+    return counts
 
-def get_course_info(course):
+
+def get_course_info(course, course_enrollments):
     """Returns an object containing original edX course and some complementary properties."""
+    #import ipdb; ipdb.set_trace()
     about_sections = {}
     for field in ABOUT_SECTION_FIELDS:
         about_sections[field] = get_course_about_section(course, field)
@@ -50,13 +58,13 @@ def get_course_info(course):
         funcourse = Course.objects.get(key=course.id)
     except Course.DoesNotExist:
         funcourse = None
-
+    course_id = course.id.to_deprecated_string()
     course_info = FunCourse(course=course,
             fun=funcourse,
             course_image_url=course_image_url(course),
-            students_count=CourseEnrollment.objects.filter(course_id=course.id).count(),
+            course_enrollments = course_enrollments.get(course_id, '-'),
             url='https://%s%s' % (settings.LMS_BASE,
-                    reverse('about_course', args=[course.id.to_deprecated_string()])),
+                    reverse('about_course', args=[course_id])),
             studio_url=get_cms_course_link(course),
             **about_sections
             )
@@ -64,7 +72,8 @@ def get_course_info(course):
 
 
 def get_filtered_course_infos(request):
-    course_infos = [get_course_info(course) for course in get_courses(request.user)]
+    course_enrollments = get_course_enrollments_count()
+    course_infos = [get_course_info(course, course_enrollments) for course in get_courses(request.user)]
     pattern = request.GET.get('search')
 
     if pattern:
@@ -107,7 +116,7 @@ def courses_list(request):
             raw.append(format_datetime(course_info.course.end))
             raw.append(format_datetime(course_info.course.enrollment_start))
             raw.append(format_datetime(course_info.course.enrollment_end))
-            raw.append(course_info.students_count)
+            raw.append(course_info.course_enrollments)
             raw.append(course_info.effort.encode('utf-8'))
             raw.append('https://%s%s' % (settings.LMS_BASE, course_info.course_image_url))
             raw.append(course_info.video)
@@ -128,8 +137,10 @@ def course_detail(request, course_key_string):
     States and responses from students are not yet deleted from mySQL
     (StudentModule, StudentModuleHistory are very big tables)."""
 
-    course_info = get_course_info(get_course(course_key_string))
     ck = CourseKey.from_string(course_key_string)
+    course_enrollments = {course_key_string:
+            CourseEnrollment.objects.filter(course_id=ck).count()}
+    course_info = get_course_info(get_course(course_key_string), course_enrollments)
     try:
         funcourse = Course.objects.create(key=ck)
     except IntegrityError:

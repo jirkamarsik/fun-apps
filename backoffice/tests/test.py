@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import csv
-
 from django.contrib.auth.models import Group
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
@@ -18,9 +16,6 @@ from student.models import UserProfile
 from universities.factories import UniversityFactory
 
 from ..models import Course, Teacher
-
-DM_CODE = 'x2an9mg'
-YOUTUBE_IFRAME = """\n\n\n<iframe width="560" height="315" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen=""></iframe>\n\n\n""" % DM_CODE
 
 
 class BaseTestCase(ModuleStoreTestCase):
@@ -42,8 +37,7 @@ class BaseBackoffice(BaseTestCase):
         super(BaseBackoffice, self).setUp()
         self.university = UniversityFactory.create()
         self.init(False, self.university.code)
-        self.course = CourseFactory.create(org=self.university.code,
-                video=YOUTUBE_IFRAME, effort = '3h00')  # create a non published course
+        self.course = CourseFactory.create(org=self.university.code)  # create a non published course
         self.list_url = reverse('backoffice:courses-list')
 
     def login_with_backoffice_group(self):
@@ -82,7 +76,8 @@ class TestAuthentification(BaseBackoffice):
         self.user.save()
         self.client.login(username=self.user.username, password=self.password)
         response = self.client.get(self.list_url)
-        self.assertEqual(1, len(response.context['course_infos']))  # OK
+
+        self.assertEqual(2, len(response.context['course_infos']))  # OK
 
 
 @override_settings(MODULESTORE=TEST_DATA_MOCK_MODULESTORE)
@@ -188,15 +183,3 @@ class TestDeleteTeachers(BaseCourseDetail):
         response = self.client.post(self.url, data)
         self.assertEqual(302, response.status_code)
         self.assertEqual(1, funcourse.teachers.count())
-
-@override_settings(MODULESTORE=TEST_DATA_MOCK_MODULESTORE)
-class TestExportCoursesList(BaseBackoffice):
-    def test_export(self):
-        self.login_with_backoffice_group()
-        response = self.client.post(self.list_url)
-        self.assertEqual('text/csv', response._headers['content-type'][1])
-        data = csv.reader(response.content)
-        self.assertEqual(2, len(list(data)))
-        course = data[1]
-        self.assertIn(DM_CODE, course)
-        self.assertIn('3h00', course)

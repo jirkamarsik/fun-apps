@@ -37,7 +37,7 @@
             <h2> {% trans 'Course information' %} </h2>
 
             <p>
-              <strong>{% trans "Students enrolled in this course: " %}</strong>{{ course.students_count }}
+              <strong>{% trans "Students enrolled in this course: " %}</strong>{{ course.course_enrollments }}
             </p>
             <p>
               {% regroup roles by role as roles_list %}
