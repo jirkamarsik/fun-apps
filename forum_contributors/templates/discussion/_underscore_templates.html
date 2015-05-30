@@ -169,7 +169,7 @@
                 contentId: cid,
                 contentType: 'comment',
                 primaryActions: [],
-                secondaryActions: ['edit', 'delete', 'report']
+                secondaryActions: ['translate-small', 'edit', 'delete', 'report']
             }
         )
     %>"""}
@@ -561,6 +561,7 @@ ${primaryAction("translate", "language", _("Translate"), _("Translate"), _("Tran
 ${secondaryStateAction("report", "flag", _("Report abuse"), _("Report"), _("Unreport"))}
 ${secondaryStateAction("pin", "thumb-tack", _("Pin"), _("Pin"), _("Unpin"))}
 ${secondaryStateAction("close", "lock", _("Close"), _("Close"), _("Open"))}
+${secondaryStateAction("translate-small", "language", _("Translate"), _("Translate"), _("Translate"))}
 
 <%def name="secondaryAction(action_class, icon, label)">
     <script type="text/template" id="forum-action-${action_class}">
