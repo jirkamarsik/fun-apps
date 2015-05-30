@@ -136,7 +136,7 @@
                     {
                         contentId: cid,
                         contentType: 'response',
-                        primaryActions: ['vote', thread.get('thread_type') == 'question' ? 'answer' : 'endorse'],
+                        primaryActions: ['vote', thread.get('thread_type') == 'question' ? 'answer' : 'endorse', 'translate'],
                         secondaryActions: ['edit', 'delete', 'report']
                     }
                 )
@@ -514,9 +514,11 @@
     </script>
 </%def>
 
+
 ${primaryAction("endorse", "check", _("Endorse"), _("Endorse"), _("Unendorse"))}
 ${primaryAction("answer", "check", _("Mark as Answer"), _("Mark as Answer"), _("Unmark as Answer"))}
 ${primaryAction("follow", "star", _("Follow"), _("Follow"), _("Unfollow"))}
+${primaryAction("translate", "language", _("Translate"), _("Translate"), _("Translate"))}
 
 <script type="text/template" id="forum-action-vote">
     <li class="actions-item">
